@@ -1,239 +1,62 @@
-/* ===== 卡片窗口：真·毛玻璃（透出桌面） ===== */
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #0f0f0f;
+  background-color: transparent;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
 
-/* 去掉浏览器默认外边距，保证卡片铺满窗口 */
 html,
 body {
   margin: 0;
 }
 
-.card {
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: transparent;
-}
-
-.card-header {
-  position: relative; /* 让下拉菜单相对标题栏定位 */
-  display: flex;
-  align-items: center;
-  height: 44px;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.35);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.card-drag {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  padding-left: 12px;
-  user-select: none;
-  cursor: grab;
-  font-weight: 600;
-  color: #3a3a4a;
-  overflow: hidden;
-}
-
-.card-name-input {
-  flex: 1;
-  height: 30px;
-  margin: 0 10px;
-  padding: 0 8px;
-  border: 1px solid rgba(120, 130, 255, 0.5);
+input,
+button {
   border-radius: 8px;
-  font-size: 14px;
-  color: #3a3a4a;
-  background: rgba(255, 255, 255, 0.75);
-  outline: none;
-  box-shadow: none;
-}
-
-/* 菜单按钮（⋯） */
-.card-menu-btn {
-  border: none;
-  background: transparent;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  font-size: 18px;
-  color: #5a5a6a;
-  cursor: pointer;
-  flex-shrink: 0;
-  box-shadow: none;
-  transition: background 0.15s, color 0.15s;
-}
-
-.card-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* 关闭按钮（×） */
-.card-close {
-  border: none;
-  background: transparent;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  font-size: 20px;
-  color: #5a5a6a;
-  cursor: pointer;
-  flex-shrink: 0;
-  box-shadow: none;
-  transition: background 0.15s, color 0.15s;
-}
-
-.card-close:hover {
-  background: rgba(255, 90, 90, 0.85);
-  color: #ffffff;
-}
-
-/* 下拉菜单遮罩：点空白处关闭菜单 */
-.card-menu-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 9;
-}
-
-/* 下拉菜单 */
-.card-menu {
-  position: absolute;
-  top: 48px;
-  right: 8px;
-  z-index: 10;
-  min-width: 170px;
-  padding: 6px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.card-menu-title {
-  padding: 6px 12px 2px;
-  font-size: 12px;
-  color: #9a9aa8;
-  user-select: none;
-}
-
-.card-menu-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
   font-weight: 500;
-  color: #3a3a4a;
-  box-shadow: none;
+  font-family: inherit;
+  color: #0f0f0f;
+  background-color: #ffffff;
+  transition: border-color 0.25s;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
-.card-menu-item:hover {
-  background: rgba(0, 0, 0, 0.06);
+button {
+  cursor: pointer;
+}
+button:hover {
+  border-color: #396cd8;
+}
+button:active {
+  border-color: #396cd8;
+  background-color: #e8e8e8;
 }
 
-.card-menu-item.active {
-  background: rgba(120, 130, 255, 0.16);
-  color: #5960e0;
+input,
+button {
+  outline: none;
 }
 
-.card-menu-item.danger {
-  color: #e04545;
-}
-
-.card-menu-item.danger:hover {
-  background: rgba(224, 69, 69, 0.12);
-}
-
-.card-menu-sep {
-  height: 1px;
-  margin: 4px 6px;
-  background: rgba(0, 0, 0, 0.08);
-}
-
-/* 文件网格：唯一的滚动容器 */
-.card-files {
-  --icon-size: 64px; /* 默认中号图标 */
-  list-style: none;
-  margin: 0;
-  padding: 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(var(--icon-size) + 40px), 1fr));
-  gap: 8px; /* 行与行、列与列的固定间距 */
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-/* 视图大小：只改一个变量 */
-.card-files.size-small  { --icon-size: 40px; }
-.card-files.size-medium { --icon-size: 64px; }
-.card-files.size-large  { --icon-size: 96px; }
-
-.card-files::-webkit-scrollbar {
-  display: none;
-}
-
-.file-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: calc(var(--icon-size, 64px) + 32px); /* 撑满所在列 */
-  height: calc(var(--icon-size, 64px) + 32px); /* 固定高度 → 每行等高、间距一致 */
-  gap: 6px;
-  padding: 8px 4px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow: 0 4px 16px rgba(50, 50, 90, 0.08);
-  cursor: grab;
-  user-select: none;
-  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, opacity 0.15s;
-}
-
-.file-item:hover {
-  background: rgba(255, 255, 255, 0.55);
-  border-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 8px 24px rgba(50, 50, 90, 0.16);
-  transform: translateY(-2px);
-}
-
-/* 正在拖动的文件：变透明 */
-.file-item.dragging {
-  opacity: 0.4;
-}
-
-/* 拖动悬停到的位置：高亮边框 */
-.file-item.drag-over {
-  border-color: #5960e0;
-  background: rgba(120, 130, 255, 0.18);
-}
-
-.file-preview {
-  width: var(--icon-size, 64px);
-  height: var(--icon-size, 64px);
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-}
-
-.file-name {
-  width: 100%;
-  height: 36px;      /* 固定两行高 */
-  line-height: 18px; /* 每行 18px */
-  font-size: 12px;
-  color: #3a3a4a;
-  text-align: center;
-  word-break: break-all;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #f6f6f6;
+  }
+  input,
+  button {
+    color: #ffffff;
+    background-color: #0f0f0f98;
+  }
+  button:active {
+    background-color: #0f0f0f69;
+  }
 }

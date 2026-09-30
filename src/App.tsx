@@ -1,7 +1,7 @@
 import "./App.css";
 
-import MainView from "./MainView";
-import CardView from "./CardView";
+import MainView from "./views/MainView";
+import CardView from "./views/CardView";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 function App() {

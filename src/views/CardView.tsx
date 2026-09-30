@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
-import { CardData, FileItem } from "./type";
+import { CardData, FileItem } from "../type";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import FileIcon from "../component/FileIcon";
+import "./CardView.css";
 
 type ViewSize = "small" | "medium" | "large";
-
-function FileIcon({ path }: { path: string }) {
-    const [icon, setIcon] = useState("");
-
-    useEffect(() => {
-        invoke<string>("get_file_icon", { path: path })
-            .then(setIcon)
-            .catch(() => setIcon(""));
-    }, [path]);
-
-    return <img className="file-preview" src={icon} alt="" draggable={false} />;
-}
 
 function CardView({ cardLabel }: { cardLabel: string }) {
     const [editing, setEditing] = useState(false);

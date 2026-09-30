@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { CardData } from "./type";
+import { CardData } from "../type";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-
+import "./MainView.css";
 function MainView(){
     const [cards, setCards] = useState<CardData[]>([])
     const [cardName, setCardName] = useState("");
