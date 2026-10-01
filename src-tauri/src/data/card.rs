@@ -1,17 +1,17 @@
 use std::{
-    collections::HashMap,
-    path::PathBuf, 
-    sync::Mutex, 
+    collections::{BTreeMap, HashMap}, path::PathBuf, sync::{Mutex, MutexGuard}, 
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 
-#[derive(Serialize, Deserialize, Clone)]
+use crate::services::store_data::CardStore;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct FileItem{
     pub name: String,
     pub path: PathBuf,
 }
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CardData{
     pub file_vec: Vec<FileItem>,
@@ -23,11 +23,33 @@ pub struct CardRegistry {
     //resource compete wont happen
     //Card Label, Car Data
     pub cards: Mutex<HashMap<String, CardData>>,
+    store: CardStore,
 }
 impl CardRegistry {
-    pub fn new()->Self{
-        Self { cards: Mutex::new(HashMap::new()) }
+    pub fn new(path: PathBuf)->Self{
+        Self { 
+            cards: Mutex::new(HashMap::new()),
+            store: CardStore::new(path),
+        }
     }
+
+    pub fn mutate<T>(
+        &self,
+        change_fn: impl FnOnce(&mut HashMap<String, CardData>) -> Result<T, String>
+    ) -> Result<T, String> 
+    {
+        let (result, snapshot) = {
+            let mut cards = self.cards.lock()
+                .map_err(|e|e.to_string())?;
+            let result = change_fn(&mut cards)?;
+            let snapshot = cards.values().cloned().collect::<Vec<_>>();
+            (result, snapshot)
+        };
+        self.store.save(&snapshot)?;
+
+        Ok(result)
+    }
+
     pub fn add_file_to_card(&self, card_label: &str, files: Vec<FileItem>){
         let mut cards = self.cards.lock().unwrap();
         if let Some(card) = cards.get_mut(card_label){

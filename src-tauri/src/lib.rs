@@ -2,6 +2,8 @@ mod services;
 mod commands;
 mod data;
 
+use std::path::PathBuf;
+
 use crate::commands::card_commands::*;
 use crate::data::card::CardRegistry;
 
@@ -9,7 +11,7 @@ use crate::data::card::CardRegistry;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(CardRegistry::new())
+        .manage(CardRegistry::new(PathBuf::from("./cards.json")))
         .invoke_handler(tauri::generate_handler![
             create_new_card,
             close_card,
