@@ -1,22 +1,78 @@
-use std::path::PathBuf;
-use tauri::{Emitter, Manager};
+use std::{path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH}
+};
+use tauri::{Emitter, Manager, WebviewWindowBuilder};
+use window_vibrancy::apply_acrylic;
+use crate::data::card::{CardData, CardRegistry};
 use crate::services;
 use crate::data::card::*;
 
 #[tauri::command]
-pub fn add_file_to_card(app: tauri::AppHandle, card_label: String, paths: Vec<PathBuf>) -> Result<(), String>{
-    let registry = app.state::<CardRegistry>();
-    let files: Vec<FileItem> = paths.into_iter()
-        .filter_map(|path|{
-            let name  = path
-                .file_name()?
-                .to_string_lossy()
-                .to_string();
-            Some(FileItem{ name, path })
-        })
-        .collect();
+pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(), String> {
+    let system_time= SystemTime::now().duration_since(UNIX_EPOCH)
+        .unwrap().as_millis();
+    let card_label = format!("card-{}",system_time);
+    let window = WebviewWindowBuilder::new(
+        &app,
+        &card_label,
+        tauri::WebviewUrl::App("index.html".into())
+    )
+    .title(card_name)
+    .inner_size(300.0, 400.0)
+    .decorations(false)
+    .transparent(true)
+    .resizable(true)
+    .maximizable(false)
+    .build()
+    .map_err(|e|e.to_string())?;
 
-    registry.add_file_to_card(&card_label, files);
+    apply_acrylic(&window, Some((255, 255, 255, 64))).map_err(|e|e.to_string())?;
+
+
+    let registry = app.state::<CardRegistry>();
+    let mut cards = registry.cards.lock().unwrap();
+    let card_data = CardData{
+            file_vec: Vec::new(),
+            card_name: card_name.to_string(),
+            card_label: card_label.clone()
+    };
+    cards.insert(card_label, card_data);
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub fn close_card(app: tauri::AppHandle, card_label: String) -> Result<(), String> {
+    {
+        if let Some(win) = app.get_webview_window(&card_label) {
+            win.close().map_err(|e|e.to_string())?;
+        }
+        let registry = app.state::<CardRegistry>();
+        let mut cards = registry.cards.lock().unwrap();
+        cards.remove(&card_label);
+    }
+
+    app.emit("card-update", ()).map_err(|e|e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn add_file_to_card(app: tauri::AppHandle, card_label: String, paths: Vec<PathBuf>) -> Result<(), String>{
+    {
+        let registry = app.state::<CardRegistry>();
+        let files: Vec<FileItem> = paths.into_iter()
+            .filter_map(|path|{
+                let name  = path
+                    .file_name()?
+                    .to_string_lossy()
+                    .to_string();
+                Some(FileItem{ name, path })
+            })
+            .collect();
+
+        registry.add_file_to_card(&card_label, files);
+    }
 
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
 
@@ -24,10 +80,12 @@ pub fn add_file_to_card(app: tauri::AppHandle, card_label: String, paths: Vec<Pa
 }
 #[tauri::command]
 pub fn rename_card(app: tauri::AppHandle, card_label: String, new_name: String) -> Result<(), String> {
-    let registry = app.state::<CardRegistry>();
-    let mut cards = registry.cards.lock().unwrap();
-    let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
-    card.card_name = new_name.clone();
+    {
+        let registry = app.state::<CardRegistry>();
+        let mut cards = registry.cards.lock().unwrap();
+        let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
+        card.card_name = new_name.clone();
+    }
 
     if let Some(win) = app.get_webview_window(&card_label) {
         win.set_title(&new_name).map_err(|e|e.to_string())?;
@@ -37,13 +95,15 @@ pub fn rename_card(app: tauri::AppHandle, card_label: String, new_name: String) 
 }
 #[tauri::command]
 pub fn reorder_card_files(app: tauri::AppHandle, card_label: String, order: Vec<PathBuf>) -> Result<(), String> {
-    let registry = app.state::<CardRegistry>();
-    let mut cards = registry.cards.lock().unwrap();
-    let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
+    {
+        let registry = app.state::<CardRegistry>();
+        let mut cards = registry.cards.lock().unwrap();
+        let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
 
-    card.file_vec.sort_by_key(|f|{
-        order.iter().position(|p| p == &f.path).unwrap_or(usize::MAX)
-    });
+        card.file_vec.sort_by_key(|f|{
+            order.iter().position(|p| p == &f.path).unwrap_or(usize::MAX)
+        });
+    }
 
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
     Ok(())
@@ -92,5 +152,6 @@ pub fn get_card(app: tauri::AppHandle, card_label: String) -> Result<CardData, S
 pub fn list_cards(app: tauri::AppHandle) -> Result<Vec<CardData>, String> {
     let registry = app.state::<CardRegistry>();
     let cards = registry.cards.lock().unwrap();
+
     Ok(cards.values().cloned().collect())
 }

@@ -174,8 +174,8 @@ body {
 }
 
 /* 视图大小：只改一个变量 */
-.card-files.size-small  { --icon-size: 40px; }
-.card-files.size-medium { --icon-size: 64px; }
+.card-files.size-small  { --icon-size: 32px; }
+.card-files.size-medium { --icon-size: 48px; }
 .card-files.size-large  { --icon-size: 96px; }
 
 .card-files::-webkit-scrollbar {
@@ -187,7 +187,7 @@ body {
   flex-direction: column;
   align-items: center;
   width: calc(var(--icon-size, 64px) + 32px); /* 撑满所在列 */
-  height: calc(var(--icon-size, 64px) + 32px); /* 固定高度 → 每行等高、间距一致 */
+  height: calc(var(--icon-size, 64px) + 40px); /* 固定高度 → 每行等高、间距一致 */
   gap: 6px;
   padding: 8px 4px;
   border-radius: 14px;
@@ -215,6 +215,25 @@ body {
 .file-item.drag-over {
   border-color: #5960e0;
   background: rgba(120, 130, 255, 0.18);
+}
+
+/* 选中态：像 Windows 桌面图标一样，高亮 + 文件名完整展开 */
+.file-item.selected {
+  height: auto; /* 选中项高度随展开的名字增长，不再固定 */
+  background: rgba(90, 120, 255, 0.20);
+  border-color: rgba(90, 120, 255, 0.55);
+}
+
+.file-item.selected .file-name {
+  display: block; /* 取消 -webkit-box 的两行截断 */
+  height: auto;
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
+  background: rgba(255, 255, 255, 0.88); /* 展开后垫一层底，保证可读 */
+  border-radius: 4px;
+  padding: 2px 4px;
+  box-sizing: border-box;
 }
 
 .file-preview {

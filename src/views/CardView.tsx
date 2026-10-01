@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
-import { CardData, FileItem } from "../type";
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { CardData, FileItem, ViewSize } from "../type";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import FileIcon from "../component/FileIcon";
+import CardFileItem from "../component/CardFileItem";
 import "./CardView.css";
-
-type ViewSize = "small" | "medium" | "large";
 
 function CardView({ cardLabel }: { cardLabel: string }) {
     const [editing, setEditing] = useState(false);
     const [draftName, setDraftName] = useState("");
-    const [dragIndex, setDragIndex] = useState<number | null>(null);
-    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-    const [files, setFiles] = useState<FileItem[]>([]);
+    const [files, setFiles] = useState<FileItem[]>([])
     const [cardName, setCardName] = useState("");
 
     // 新增：菜单与视图大小
@@ -32,35 +28,7 @@ function CardView({ cardLabel }: { cardLabel: string }) {
         }
     }
 
-    function startReoder(index: number) {
-        setDragIndex(index);
-    }
-    function endDrag() {
-        setDragIndex(null);
-        setDragOverIndex(null);
-    }
-    function endReoder(index: number) {
-        if (dragIndex === null || dragIndex === index) {
-            setDragIndex(null);
-            setDragOverIndex(null);
-            return;
-        }
-        const newFiles = [...files];
-        const [moved] = newFiles.splice(dragIndex, 1);
-        const target = dragIndex < index ? index - 1 : index;
-        newFiles.splice(target, 0, moved);
-        setFiles(newFiles);
-        setDragIndex(null);
-        setDragOverIndex(null);
-        invoke("reorder_card_files", {
-            cardLabel: cardLabel,
-            order: newFiles.map((f) => f.path),
-        });
-    }
 
-    function isImage(name: string) {
-        return /\.(png|jpe?g|gif|webp|bmp|svg|ico)$/i.test(name);
-    }
 
     async function refresh() {
         invoke<CardData>("get_card", { cardLabel: cardLabel })
@@ -149,39 +117,7 @@ function CardView({ cardLabel }: { cardLabel: string }) {
                     </>
                 )}
             </header>
-
-            <ul className={"card-files size-" + viewSize}>
-                {files.map((file, index) => (
-                    <li
-                        key={file.path}
-                        className={
-                            "file-item" +
-                            (dragIndex === index ? " dragging" : "") +
-                            (dragOverIndex === index ? " drag-over" : "")
-                        }
-                        draggable
-                        onDragStart={() => startReoder(index)}
-                        onDragEnd={endDrag}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            if (dragOverIndex !== index) setDragOverIndex(index);
-                        }}
-                        onDrop={() => endReoder(index)}
-                    >
-                        {isImage(file.name) ? (
-                            <img
-                                className="file-preview"
-                                src={convertFileSrc(file.path)}
-                                alt={file.name}
-                                draggable={false}
-                            />
-                        ) : (
-                            <FileIcon path={file.path} />
-                        )}
-                        <div className="file-name" title={file.name}>{file.name}</div>
-                    </li>
-                ))}
-            </ul>
+            <CardFileItem files={files} viewSize={viewSize}/>
         </main>
     );
 }

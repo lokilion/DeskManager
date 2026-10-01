@@ -7,3 +7,5 @@ export interface CardData{
     card_name: string,
     card_label: string
 }
+
+export type ViewSize = "small" | "medium" | "large";
