@@ -94,15 +94,13 @@ pub fn rename_card(app: tauri::AppHandle, card_label: String, new_name: String) 
 }
 #[tauri::command]
 pub fn reorder_card_files(app: tauri::AppHandle, card_label: String, order: Vec<PathBuf>) -> Result<(), String> {
-    {
-        let registry = app.state::<CardRegistry>();
-        let mut cards = registry.cards.lock().unwrap();
+    app.state::<CardRegistry>().mutate(|cards|{
         let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
-
         card.file_vec.sort_by_key(|f|{
             order.iter().position(|p| p == &f.path).unwrap_or(usize::MAX)
         });
-    }
+        Ok(())
+    })?;
 
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
     Ok(())

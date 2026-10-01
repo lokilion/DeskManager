@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
     sync::Mutex, 
 };
-use serde::{Deserialize, Serialize, de};
+use serde::{Deserialize, Serialize};
 
 use crate::services::store_data::CardStore;
 
