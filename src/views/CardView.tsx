@@ -2,23 +2,25 @@ import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 
 import CardFileItem from "../component/CardFileItem";
-import { FileItem, ViewSize } from "../type";
-import { addFileToCard, closeCard, getCard, renameCard } from "../api/card";
+import { ViewSize } from "../type";
+import { addFileToCard, closeCard, renameCard } from "../api/card";
 
 import "./CardView.css";
+import { useCard } from "../hooks/useCard";
 
 function CardView({ cardLabel }: { cardLabel: string }) {
+
+    let { card } = useCard(cardLabel);
+    const cardName = card?.card_name ?? "";
+    const files = card?.file_vec ?? [];
+
     const [editing, setEditing] = useState(false);
     const [draftName, setDraftName] = useState("");
-    const [files, setFiles] = useState<FileItem[]>([])
-    const [cardName, setCardName] = useState("");
-
     // 新增：菜单与视图大小
     const [menuOpen, setMenuOpen] = useState(false);
     const [viewSize, setViewSize] = useState<ViewSize>("medium");
 
     function startRename() {
-        setDraftName(cardName);
         setEditing(true);
     }
     async function commitRename() {
@@ -26,37 +28,34 @@ function CardView({ cardLabel }: { cardLabel: string }) {
         const newName = draftName.trim();
         if (newName && newName != cardName) {
             await renameCard( cardLabel, newName );
-            setCardName(newName);
         }
     }
 
-
-
-    async function refresh() {
-        getCard( cardLabel )
-            .then((card) => {
-                setCardName(card.card_name);
-                setFiles(card.file_vec);
-            });
-    }
     async function handleClose() {
         await closeCard( cardLabel );
     }
 
-    useEffect(() => { refresh(); }, [cardLabel]);
 
     useEffect(() => {
         let unlisten: (() => void) | undefined;
+        let cancel = false;
+
         getCurrentWebview()
             .onDragDropEvent((e) => {
                 if (e.payload.type === "drop") {
                     addFileToCard(cardLabel, e.payload.paths)
-                    .then(refresh);
                 }
             })
-            .then((fn) => { unlisten = fn; });
+            .then((fn) => { 
+                if(cancel){fn();}
+                else{unlisten = fn;}
+            });
 
-        return () => { unlisten?.(); };
+        return () => {
+            cancel = true;
+            unlisten?.();
+        };
+
     }, [cardLabel]);
 
     return (

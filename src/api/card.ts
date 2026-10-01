@@ -41,6 +41,7 @@ export function getFileIcon(path: string): Promise<string> {
   return invoke("get_file_icon", { path });
 }
 
+//当监听到信号，会调用handler, 并返回一个unlisten函数
 export function onCardUpdated(handler: () => void): Promise<UnlistenFn> {
   return listen(CARD_UPDATED, () => handler());
 }

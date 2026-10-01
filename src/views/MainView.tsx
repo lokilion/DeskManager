@@ -1,43 +1,18 @@
-import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
-
-import { CardData } from "../type";
-import { createCard, listCards } from "../api/card";
+import { useState } from "react";
+import { createCard } from "../api/card";
 
 import "./MainView.css";
+import { useMainCards } from "../hooks/useMainCards";
 
 function MainView(){
-    const [cards, setCards] = useState<CardData[]>([])
+    //当事件发出后执行useCards中的reload，自动更新cards
+    const { cards } = useMainCards();
     const [cardName, setCardName] = useState("");
-
-    async function get_cards() {
-        const list = await listCards();
-        setCards(list);
-    }
-    useEffect(() => {
-        get_cards();
-    }, []);
-
-    useEffect(()=>{
-        let unlisten: (()=>void) | undefined;
-
-        listen("card-update", () => {
-            get_cards();
-        })
-        .then((fn) => {
-            unlisten = fn;
-        });
-
-        return () => {
-            unlisten?.();
-        };
-    },[])
 
     //create_new_card
     async function handleCreate() {
         await createCard(cardName || "新卡片");
         setCardName("");
-        await get_cards();
     }
 
     return(

@@ -5,11 +5,12 @@ import FileIcon from "./FileIcon";
 //files we need to rendeer;
 //icon size;
 type Props = {
-    files: FileItem[];
+    files: FileItem[] | undefined;
     viewSize: ViewSize;
 };
 function CardFileItem( {files, viewSize}: Props ){
-
+    if(files === undefined){ return; }
+    
     function isImage(name: string) {
         return /\.(png|jpe?g|gif|webp|bmp|svg|ico)$/i.test(name);
     }

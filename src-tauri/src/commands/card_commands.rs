@@ -29,15 +29,19 @@ pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(
     apply_acrylic(&window, Some((255, 255, 255, 64))).map_err(|e|e.to_string())?;
 
 
-    let registry = app.state::<CardRegistry>();
-    let mut cards = registry.cards.lock().unwrap();
-    let card_data = CardData{
-            file_vec: Vec::new(),
-            card_name: card_name.to_string(),
-            card_label: card_label.clone()
-    };
-    cards.insert(card_label, card_data);
+    {
+        let registry = app.state::<CardRegistry>();
+        let mut cards = registry.cards.lock().unwrap();
+        let card_data = CardData{
+                file_vec: Vec::new(),
+                card_name: card_name.to_string(),
+                card_label: card_label.clone()
+        };
+        cards.insert(card_label, card_data);
+    }
     
+    app.emit("card-update", ()).map_err(|e|e.to_string())?;
+
     Ok(())
 }
 
