@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "fileVec": [
+      {
+        "name": "运营经纪人.pdf",
+        "path": "C:\\Users\\86157\\Desktop\\运营经纪人.pdf"
+      },
+      {
+        "name": "新建 文本文档 (2).txt",
+        "path": "C:\\Users\\86157\\Desktop\\新建 文本文档 (2).txt"
+      },
+      {
+        "name": "edge202609210938.html",
+        "path": "C:\\Users\\86157\\Desktop\\edge202609210938.html"
+      },
+      {
+        "name": "搞机小工具",
+        "path": "C:\\Users\\86157\\Desktop\\搞机小工具"
+      },
+      {
+        "name": "replace.ahk",
+        "path": "C:\\Users\\86157\\Desktop\\replace.ahk"
+      },
+      {
+        "name": "新建 文本文档.txt",
+        "path": "C:\\Users\\86157\\Desktop\\新建 文本文档.txt"
+      }
+    ],
+    "cardName": "新卡片",
+    "cardLabel": "card-1790861765974"
+  }
+]

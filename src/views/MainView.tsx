@@ -37,7 +37,6 @@ function MainView(){
             }
         </ul>
         </main>
-
     )
 }
 
