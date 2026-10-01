@@ -59,6 +59,20 @@ impl CardRegistry {
         Ok(result)
     }
 
+    pub fn unmutate<T>(
+        &self,
+        change_fn: impl FnOnce(&mut HashMap<String, CardData>) -> Result<T, String>
+    ) -> Result<T, String> 
+    {
+        let result = {
+            let mut cards = self.cards.lock()
+                .map_err(|e|e.to_string())?;
+            let result = change_fn(&mut cards)?;
+            result
+        };
+        Ok(result)
+    }
+
     pub fn add_file_to_card(&self, card_label: &str, files: Vec<FileItem>){
         let mut cards = self.cards.lock().unwrap();
         if let Some(card) = cards.get_mut(card_label){

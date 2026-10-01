@@ -129,7 +129,7 @@ pub fn get_file_icon(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn get_card_files(app: tauri::AppHandle, card_label: String) -> Result<Vec<FileItem>, String>{
-    app.state::<CardRegistry>().mutate(|cards|{
+    app.state::<CardRegistry>().unmutate(|cards|{
         let card = cards.get(&card_label).ok_or("找不到该窗口")?;
         Ok(card.file_vec.clone())
     })
@@ -138,7 +138,7 @@ pub fn get_card_files(app: tauri::AppHandle, card_label: String) -> Result<Vec<F
 
 #[tauri::command]
 pub fn get_card(app: tauri::AppHandle, card_label: String) -> Result<CardData, String> {
-    app.state::<CardRegistry>().mutate(|cards|{
+    app.state::<CardRegistry>().unmutate(|cards|{
         let card = cards.get(&card_label).ok_or("找不到该窗口")?;
         Ok(card.clone())
     })
@@ -146,7 +146,7 @@ pub fn get_card(app: tauri::AppHandle, card_label: String) -> Result<CardData, S
 
 #[tauri::command]
 pub fn list_cards(app: tauri::AppHandle) -> Result<Vec<CardData>, String> {
-    app.state::<CardRegistry>().mutate(|cards|{
+    app.state::<CardRegistry>().unmutate(|cards|{
         Ok(cards.values().cloned().collect())
     })
 }
