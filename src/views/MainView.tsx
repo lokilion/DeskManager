@@ -30,8 +30,8 @@ function MainView(){
 
         <ul>
             {cards.map((card) => (
-                <li key={card.card_label}>
-                    {card.card_name}({card.file_vec.length} 个文件）
+                <li key={card.cardLabel}>
+                    {card.cardName}({card.fileVec.length} 个文件）
                 </li>
                 ))
             }

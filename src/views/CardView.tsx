@@ -10,9 +10,9 @@ import { useCard } from "../hooks/useCard";
 
 function CardView({ cardLabel }: { cardLabel: string }) {
 
-    let { card } = useCard(cardLabel);
-    const cardName = card?.card_name ?? "";
-    const files = card?.file_vec ?? [];
+    const { card } = useCard(cardLabel);
+    const cardName = card?.cardName ?? "";
+    const files = card?.fileVec ?? [];
 
     const [editing, setEditing] = useState(false);
     const [draftName, setDraftName] = useState("");
@@ -21,6 +21,7 @@ function CardView({ cardLabel }: { cardLabel: string }) {
     const [viewSize, setViewSize] = useState<ViewSize>("medium");
 
     function startRename() {
+        setDraftName(cardName);
         setEditing(true);
     }
     async function commitRename() {

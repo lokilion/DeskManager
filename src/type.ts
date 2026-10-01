@@ -3,9 +3,9 @@ export interface FileItem{
     path: string
 }
 export interface CardData{
-    file_vec: FileItem[],
-    card_name: string,
-    card_label: string
+    fileVec: FileItem[],
+    cardName: string,
+    cardLabel: string
 }
 
 export type ViewSize = "small" | "medium" | "large";

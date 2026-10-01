@@ -6,11 +6,13 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct FileItem{
     pub name: String,
     pub path: PathBuf,
 }
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CardData{
     pub file_vec: Vec<FileItem>,
     pub card_name: String,
