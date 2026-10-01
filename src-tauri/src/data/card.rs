@@ -73,16 +73,19 @@ impl CardRegistry {
         Ok(result)
     }
 
-    pub fn add_file_to_card(&self, card_label: &str, files: Vec<FileItem>){
-        let mut cards = self.cards.lock().unwrap();
-        if let Some(card) = cards.get_mut(card_label){
-            files.into_iter().for_each(|file|{
-                let exist = card.file_vec
-                    .iter().any(|f| f.path == file.path);
-                if !exist{
-                    card.file_vec.push(file);
-                }
-            });
-        }
+    pub fn add_file_to_card(&self, card_label: &str, files: Vec<FileItem>) -> Result<(), String>{
+        self.mutate(|cards|{
+            if let Some(card) = cards.get_mut(card_label){
+                files.into_iter().for_each(|file|{
+                    let exist = card.file_vec
+                        .iter().any(|f| f.path == file.path);
+                    if !exist{
+                        card.file_vec.push(file);
+                    }
+                });
+            };
+            Ok(())
+        })?;
+        Ok(())
     }
 }
