@@ -1,5 +1,7 @@
 use std::{
-    collections::{BTreeMap, HashMap}, path::PathBuf, sync::{Mutex, MutexGuard}, 
+    collections::HashMap,
+    path::PathBuf,
+    sync::Mutex, 
 };
 use serde::{Deserialize, Serialize, de};
 
@@ -22,14 +24,20 @@ pub struct CardRegistry {
     //make sure when mutiple window try to write cardregistry
     //resource compete wont happen
     //Card Label, Car Data
-    pub cards: Mutex<HashMap<String, CardData>>,
+    cards: Mutex<HashMap<String, CardData>>,
     store: CardStore,
 }
 impl CardRegistry {
     pub fn new(path: PathBuf)->Self{
+        let store = CardStore::new(path);
+        let cards = store.load()
+            .into_iter()
+            .map(|card| (card.card_label.clone(), card))
+            .collect();
+
         Self { 
-            cards: Mutex::new(HashMap::new()),
-            store: CardStore::new(path),
+            cards: Mutex::new(cards),
+            store: store
         }
     }
 
@@ -45,6 +53,7 @@ impl CardRegistry {
             let snapshot = cards.values().cloned().collect::<Vec<_>>();
             (result, snapshot)
         };
+        
         self.store.save(&snapshot)?;
 
         Ok(result)

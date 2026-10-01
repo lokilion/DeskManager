@@ -28,17 +28,15 @@ pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(
 
     apply_acrylic(&window, Some((255, 255, 255, 64))).map_err(|e|e.to_string())?;
 
-
-    {
-        let registry = app.state::<CardRegistry>();
-        let mut cards = registry.cards.lock().unwrap();
-        let card_data = CardData{
-                file_vec: Vec::new(),
-                card_name: card_name.to_string(),
-                card_label: card_label.clone()
-        };
+    let card_data = CardData{
+            file_vec: Vec::new(),
+            card_name: card_name.to_string(),
+            card_label: card_label.clone()
+    };
+    app.state::<CardRegistry>().mutate(|cards|{
         cards.insert(card_label, card_data);
-    }
+        Ok(())
+    })?;
     
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
 
@@ -47,14 +45,13 @@ pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(
 
 #[tauri::command]
 pub fn close_card(app: tauri::AppHandle, card_label: String) -> Result<(), String> {
-    {
-        if let Some(win) = app.get_webview_window(&card_label) {
-            win.close().map_err(|e|e.to_string())?;
-        }
-        let registry = app.state::<CardRegistry>();
-        let mut cards = registry.cards.lock().unwrap();
-        cards.remove(&card_label);
+    if let Some(win) = app.get_webview_window(&card_label) {
+        win.close().map_err(|e|e.to_string())?;
     }
+    app.state::<CardRegistry>().mutate(|cards|{
+        cards.remove(&card_label);
+        Ok(())
+    })?;
 
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
 
@@ -63,7 +60,6 @@ pub fn close_card(app: tauri::AppHandle, card_label: String) -> Result<(), Strin
 
 #[tauri::command]
 pub fn add_file_to_card(app: tauri::AppHandle, card_label: String, paths: Vec<PathBuf>) -> Result<(), String>{
-    {
         let registry = app.state::<CardRegistry>();
         let files: Vec<FileItem> = paths.into_iter()
             .filter_map(|path|{
@@ -76,7 +72,6 @@ pub fn add_file_to_card(app: tauri::AppHandle, card_label: String, paths: Vec<Pa
             .collect();
 
         registry.add_file_to_card(&card_label, files);
-    }
 
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
 
@@ -84,16 +79,16 @@ pub fn add_file_to_card(app: tauri::AppHandle, card_label: String, paths: Vec<Pa
 }
 #[tauri::command]
 pub fn rename_card(app: tauri::AppHandle, card_label: String, new_name: String) -> Result<(), String> {
-    {
-        let registry = app.state::<CardRegistry>();
-        let mut cards = registry.cards.lock().unwrap();
+    app.state::<CardRegistry>().mutate(|cards|{
         let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
         card.card_name = new_name.clone();
-    }
+        Ok(())
+    })?;
 
     if let Some(win) = app.get_webview_window(&card_label) {
         win.set_title(&new_name).map_err(|e|e.to_string())?;
     }
+
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
     Ok(())
 }
@@ -136,26 +131,24 @@ pub fn get_file_icon(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn get_card_files(app: tauri::AppHandle, card_label: String) -> Result<Vec<FileItem>, String>{
-    let registry = app.state::<CardRegistry>();
-    let cards = registry.cards.lock().unwrap();
-    let card = cards.get(&card_label).ok_or("找不到该窗口")?;
-
-    Ok(card.file_vec.clone())
+    app.state::<CardRegistry>().mutate(|cards|{
+        let card = cards.get(&card_label).ok_or("找不到该窗口")?;
+        Ok(card.file_vec.clone())
+    })
+    
 }
 
 #[tauri::command]
 pub fn get_card(app: tauri::AppHandle, card_label: String) -> Result<CardData, String> {
-    let registry = app.state::<CardRegistry>();
-    let cards = registry.cards.lock().unwrap();
-    let card = cards.get(&card_label).ok_or("找不到该窗口")?;
-
-    Ok(card.clone())
+    app.state::<CardRegistry>().mutate(|cards|{
+        let card = cards.get(&card_label).ok_or("找不到该窗口")?;
+        Ok(card.clone())
+    })
 }
 
 #[tauri::command]
 pub fn list_cards(app: tauri::AppHandle) -> Result<Vec<CardData>, String> {
-    let registry = app.state::<CardRegistry>();
-    let cards = registry.cards.lock().unwrap();
-
-    Ok(cards.values().cloned().collect())
+    app.state::<CardRegistry>().mutate(|cards|{
+        Ok(cards.values().cloned().collect())
+    })
 }
