@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { CardData } from "../type";
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+
+import { CardData } from "../type";
+import { createCard, listCards } from "../api/card";
+
 import "./MainView.css";
+
 function MainView(){
     const [cards, setCards] = useState<CardData[]>([])
     const [cardName, setCardName] = useState("");
 
     async function get_cards() {
-        const list = await invoke<CardData[]>("list_cards");
+        const list = await listCards();
         setCards(list);
     }
     useEffect(() => {
@@ -32,7 +35,7 @@ function MainView(){
 
     //create_new_card
     async function handleCreate() {
-        await invoke("create_new_card", {cardName: cardName || "新卡片"});
+        await createCard(cardName || "新卡片");
         setCardName("");
         await get_cards();
     }

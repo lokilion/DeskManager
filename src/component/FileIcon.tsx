@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { getFileIcon } from "../api/card";
 
 function FileIcon({ path }: { path: string }) {
     const [icon, setIcon] = useState("");
 
     useEffect(() => {
-        invoke<string>("get_file_icon", { path: path })
+        getFileIcon( path )
             .then(setIcon)
             .catch(() => setIcon(""));
     }, [path]);

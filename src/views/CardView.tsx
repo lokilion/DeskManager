@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { CardData, FileItem, ViewSize } from "../type";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+
 import CardFileItem from "../component/CardFileItem";
+import { FileItem, ViewSize } from "../type";
+import { addFileToCard, closeCard, getCard, renameCard } from "../api/card";
+
 import "./CardView.css";
 
 function CardView({ cardLabel }: { cardLabel: string }) {
@@ -23,7 +25,7 @@ function CardView({ cardLabel }: { cardLabel: string }) {
         setEditing(false);
         const newName = draftName.trim();
         if (newName && newName != cardName) {
-            await invoke("rename_card", { cardLabel: cardLabel, newName: newName });
+            await renameCard( cardLabel, newName );
             setCardName(newName);
         }
     }
@@ -31,14 +33,14 @@ function CardView({ cardLabel }: { cardLabel: string }) {
 
 
     async function refresh() {
-        invoke<CardData>("get_card", { cardLabel: cardLabel })
+        getCard( cardLabel )
             .then((card) => {
                 setCardName(card.card_name);
                 setFiles(card.file_vec);
             });
     }
     async function handleClose() {
-        await invoke("close_card", { cardLabel: cardLabel });
+        await closeCard( cardLabel );
     }
 
     useEffect(() => { refresh(); }, [cardLabel]);
@@ -48,10 +50,8 @@ function CardView({ cardLabel }: { cardLabel: string }) {
         getCurrentWebview()
             .onDragDropEvent((e) => {
                 if (e.payload.type === "drop") {
-                    invoke("add_file_to_card", {
-                        cardLabel: cardLabel,
-                        paths: e.payload.paths,
-                    }).then(refresh);
+                    addFileToCard(cardLabel, e.payload.paths)
+                    .then(refresh);
                 }
             })
             .then((fn) => { unlisten = fn; });
