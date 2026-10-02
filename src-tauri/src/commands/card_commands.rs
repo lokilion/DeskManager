@@ -2,9 +2,8 @@ use std::{path::PathBuf,
     time::{SystemTime, UNIX_EPOCH}
 };
 use tauri::{Emitter, Manager};
-use crate::data::{self, card::{CardData, CardRegistry}};
 use crate::services;
-use crate::data::{card::*, icon_cache::IconCache};
+use crate::data::{card::{CardData, CardRegistry, FileItem}, icon_cache::IconCache};
 
 #[tauri::command]
 pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(), String> {

@@ -9,13 +9,12 @@ impl IconCache{
         Self { cache: Mutex::new(HashMap::new()) }
     }
     pub fn get(&self, path: &str) -> Option<String>{
-        let path = path.to_string();
         self.cache.lock().ok()?
-        .get(&path).cloned()
+        .get(path).cloned()
     }
     pub fn insert(&self, path: String, url: String){
         if let Ok(mut cache) = self.cache.lock(){
-            cache.insert(path.to_string(), url.to_string());
+            cache.insert(path, url);
         }
     }
 }
