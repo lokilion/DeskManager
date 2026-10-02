@@ -1,5 +1,5 @@
 src-tauri/target/
-src-tauri/cards.json
+src-tauri/cards_json/
 
 # Logs
 logs

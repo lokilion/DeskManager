@@ -1,6 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FileItem, ViewSize } from "../type";
 import FileIcon from "./FileIcon";
+import { openPath } from "@tauri-apps/plugin-opener";
 
 //files we need to rendeer;
 //icon size;
@@ -21,6 +22,7 @@ function CardFileItem( {files, viewSize}: Props ){
                 <li
                     key={file.path}
                     className="file-item"
+                    onDoubleClick={() => openPath(file.path)}
                 >
                     {isImage(file.name) ? (
                         <img

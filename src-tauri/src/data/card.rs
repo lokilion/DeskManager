@@ -61,7 +61,7 @@ impl CardRegistry {
 
     pub fn unmutate<T>(
         &self,
-        change_fn: impl FnOnce(&mut HashMap<String, CardData>) -> Result<T, String>
+        change_fn: impl FnOnce(&HashMap<String, CardData>) -> Result<T, String>
     ) -> Result<T, String> 
     {
         let result = {
