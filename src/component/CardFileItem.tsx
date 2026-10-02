@@ -1,15 +1,16 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FileItem, ViewSize } from "../type";
 import FileIcon from "./FileIcon";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openFile } from "../api/card";
 
 //files we need to rendeer;
 //icon size;
 type Props = {
+    cardLabel: string;
     files: FileItem[] | undefined;
     viewSize: ViewSize;
 };
-function CardFileItem( {files, viewSize}: Props ){
+function CardFileItem( {cardLabel, files, viewSize}: Props ){
     if(files === undefined){ return; }
     
     function isImage(name: string) {
@@ -22,7 +23,7 @@ function CardFileItem( {files, viewSize}: Props ){
                 <li
                     key={file.path}
                     className="file-item"
-                    onDoubleClick={() => openPath(file.path)}
+                    onDoubleClick={() => {openFile(cardLabel, file.path);}}
                 >
                     {isImage(file.name) ? (
                         <img

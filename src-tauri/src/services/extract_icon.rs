@@ -1,7 +1,7 @@
 pub fn extract_icon(path: String) -> Result<String, String> {
+    use super::shell_thumbnail;
     use base64::Engine;
     use std::hash::{Hash, Hasher};
-    use super::shell_thumbnail;
 
     // 用路径哈希生成一个临时输出文件，避免不同文件撞名
     let mut hasher = std::collections::hash_map::DefaultHasher::new();

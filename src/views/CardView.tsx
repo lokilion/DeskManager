@@ -117,7 +117,7 @@ function CardView({ cardLabel }: { cardLabel: string }) {
                     </>
                 )}
             </header>
-            <CardFileItem files={files} viewSize={viewSize}/>
+            <CardFileItem cardLabel={cardLabel} files={files} viewSize={viewSize}/>
         </main>
     );
 }

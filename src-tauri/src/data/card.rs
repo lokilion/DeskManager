@@ -1,24 +1,20 @@
-use std::{
-    collections::HashMap,
-    path::PathBuf,
-    sync::Mutex, 
-};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, path::PathBuf, sync::Mutex};
 
 use crate::services::store_data::CardStore;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct FileItem{
+pub struct FileItem {
     pub name: String,
     pub path: PathBuf,
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct CardData{
+pub struct CardData {
     pub file_vec: Vec<FileItem>,
     pub card_name: String,
-    pub card_label: String
+    pub card_label: String,
 }
 pub struct CardRegistry {
     //make sure when mutiple window try to write cardregistry
@@ -28,32 +24,31 @@ pub struct CardRegistry {
     store: CardStore,
 }
 impl CardRegistry {
-    pub fn new(path: PathBuf)->Self{
+    pub fn new(path: PathBuf) -> Self {
         let store = CardStore::new(path);
-        let cards = store.load()
+        let cards = store
+            .load()
             .into_iter()
             .map(|card| (card.card_label.clone(), card))
             .collect();
 
-        Self { 
+        Self {
             cards: Mutex::new(cards),
-            store: store
+            store: store,
         }
     }
 
     pub fn mutate<T>(
         &self,
-        change_fn: impl FnOnce(&mut HashMap<String, CardData>) -> Result<T, String>
-    ) -> Result<T, String> 
-    {
+        change_fn: impl FnOnce(&mut HashMap<String, CardData>) -> Result<T, String>,
+    ) -> Result<T, String> {
         let (result, snapshot) = {
-            let mut cards = self.cards.lock()
-                .map_err(|e|e.to_string())?;
+            let mut cards = self.cards.lock().map_err(|e| e.to_string())?;
             let result = change_fn(&mut cards)?;
             let snapshot = cards.values().cloned().collect::<Vec<_>>();
             (result, snapshot)
         };
-        
+
         self.store.save(&snapshot)?;
 
         Ok(result)
@@ -61,25 +56,22 @@ impl CardRegistry {
 
     pub fn unmutate<T>(
         &self,
-        change_fn: impl FnOnce(&HashMap<String, CardData>) -> Result<T, String>
-    ) -> Result<T, String> 
-    {
+        change_fn: impl FnOnce(&HashMap<String, CardData>) -> Result<T, String>,
+    ) -> Result<T, String> {
         let result = {
-            let mut cards = self.cards.lock()
-                .map_err(|e|e.to_string())?;
+            let mut cards = self.cards.lock().map_err(|e| e.to_string())?;
             let result = change_fn(&mut cards)?;
             result
         };
         Ok(result)
     }
 
-    pub fn add_file_to_card(&self, card_label: &str, files: Vec<FileItem>) -> Result<(), String>{
-        self.mutate(|cards|{
-            if let Some(card) = cards.get_mut(card_label){
-                files.into_iter().for_each(|file|{
-                    let exist = card.file_vec
-                        .iter().any(|f| f.path == file.path);
-                    if !exist{
+    pub fn add_file_to_card(&self, card_label: &str, files: Vec<FileItem>) -> Result<(), String> {
+        self.mutate(|cards| {
+            if let Some(card) = cards.get_mut(card_label) {
+                files.into_iter().for_each(|file| {
+                    let exist = card.file_vec.iter().any(|f| f.path == file.path);
+                    if !exist {
                         card.file_vec.push(file);
                     }
                 });

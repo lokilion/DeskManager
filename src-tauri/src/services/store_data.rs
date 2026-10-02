@@ -3,17 +3,17 @@ use std::{fs, path::PathBuf};
 use crate::data::card::CardData;
 
 //store the card data to local file
-pub struct CardStore{
+pub struct CardStore {
     //the path is where to store the file
     path: PathBuf,
 }
-impl CardStore{
-    pub fn new(path: PathBuf)->Self{
+impl CardStore {
+    pub fn new(path: PathBuf) -> Self {
         Self { path }
     }
 
-    pub fn load(&self) -> Vec<CardData>{
-        let bytes = match fs::read(&self.path){
+    pub fn load(&self) -> Vec<CardData> {
+        let bytes = match fs::read(&self.path) {
             Ok(bytes) => bytes,
             Err(_) => return Vec::new(),
         };
@@ -32,28 +32,25 @@ impl CardStore{
         }
     }
 
-    pub fn save(&self, cards: &[CardData]) -> Result<(), String>{
-        if let Some(parent) = self.path.parent(){
+    pub fn save(&self, cards: &[CardData]) -> Result<(), String> {
+        if let Some(parent) = self.path.parent() {
             //父目录不存在则一并创建
-            fs::create_dir_all(parent)
-                .map_err(|e|format!("文件创建失败：{}", e))?;
+            fs::create_dir_all(parent).map_err(|e| format!("文件创建失败：{}", e))?;
         };
 
-        let json = serde_json::to_vec_pretty(cards)
-            .map_err(|e|format!("序列化失败：{}", e))?;
+        let json = serde_json::to_vec_pretty(cards).map_err(|e| format!("序列化失败：{}", e))?;
 
-        let pending = self.path
+        let pending = self
+            .path
             .with_extension(format!("json.{}.pending", std::process::id()));
 
         //暂存与临时文件中，等成功完全写入后再重命名发布
-        fs::write(&pending, &json)
-            .map_err(|e|format!("临时写入文件失败：{}", e))?;
+        fs::write(&pending, &json).map_err(|e| format!("临时写入文件失败：{}", e))?;
 
-        fs::rename(&pending, &self.path)
-            .map_err(|e|{
-                let _ = fs::remove_file(&pending);
-                format!("发布临时文件失败：{}", e)
-            })
+        fs::rename(&pending, &self.path).map_err(|e| {
+            let _ = fs::remove_file(&pending);
+            format!("发布临时文件失败：{}", e)
+        })
     }
 }
 
@@ -109,7 +106,10 @@ mod tests {
         std::fs::write(&path, b"{ this is not json").unwrap();
 
         assert!(CardStore::new(path.clone()).load().is_empty());
-        assert!(backup.exists(), "损坏文件必须被备份，否则用户数据无法人工抢救");
+        assert!(
+            backup.exists(),
+            "损坏文件必须被备份，否则用户数据无法人工抢救"
+        );
         assert!(!path.exists(), "损坏文件应被移走，避免下次启动重复报错");
 
         std::fs::remove_file(&backup).unwrap();
