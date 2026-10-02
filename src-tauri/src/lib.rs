@@ -6,12 +6,13 @@ use tauri::Manager;
 
 use services::spawn_card_window::spawn_card_window;
 use crate::commands::card_commands::*;
-use crate::data::card::CardRegistry;
+use crate::data::{card::CardRegistry, icon_cache::IconCache};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(IconCache::new())
         .setup(|app|{
             let data_dir = app.path().app_data_dir()?;
             let registry = CardRegistry::new(data_dir.join("cards.json"));

@@ -2,26 +2,30 @@ use std::{path::PathBuf,
     time::{SystemTime, UNIX_EPOCH}
 };
 use tauri::{Emitter, Manager};
-use crate::data::card::{CardData, CardRegistry};
+use crate::data::{self, card::{CardData, CardRegistry}};
 use crate::services;
-use crate::data::card::*;
+use crate::data::{card::*, icon_cache::IconCache};
 
 #[tauri::command]
 pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(), String> {
     let system_time= SystemTime::now().duration_since(UNIX_EPOCH)
         .unwrap().as_millis();
     let card_label = format!("card-{}",system_time);
-    let _ = services::spawn_card_window::spawn_card_window(&app, &card_label, card_name)?;
+    let window = services::spawn_card_window::spawn_card_window(&app, &card_label, card_name)?;
 
     let card_data = CardData{
             file_vec: Vec::new(),
             card_name: card_name.to_string(),
             card_label: card_label.clone()
     };
-    app.state::<CardRegistry>().mutate(|cards|{
+
+    if let Err(e) = app.state::<CardRegistry>().mutate(|cards|{
         cards.insert(card_label, card_data);
         Ok(())
-    })?;
+    }) {
+        let _ = window.close();
+        return Err(e);
+    }
     
     app.emit("card-update", ()).map_err(|e|e.to_string())?;
 
@@ -108,23 +112,18 @@ pub fn reorder_card_files(app: tauri::AppHandle, card_label: String, order: Vec<
 
 //Read feature
 #[tauri::command]
-pub async fn get_file_icon(path: String) -> Result<String, String> {
-    use base64::Engine;
-    use std::hash::{Hash, Hasher};
+pub async fn get_file_icon(app: tauri::AppHandle, path: String) -> Result<String, String> {
+    if let Some(url) = app.state::<IconCache>().get(&path){
+        return Ok(url);
+    }
 
-    // 用路径哈希生成一个临时输出文件，避免不同文件撞名
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    path.hash(&mut hasher);
-    let out = std::env::temp_dir().join(format!("dm-icon-{:016x}.png", hasher.finish()));
+    let e_path = path.clone();
+    let url = tauri::async_runtime::spawn_blocking(move ||{
+        services::extract_icon::extract_icon(e_path)
+    }).await.map_err(|e|e.to_string())??;
 
-    // 调你搬进来的 shell_thumbnail，把「关联图标」存成 PNG
-    services::shell_thumbnail::save_shell_icon_png(&path, &out)?;
-
-    // 读出来 → base64 → 拼成 data URL
-    let bytes = std::fs::read(&out).map_err(|e| e.to_string())?;
-    let _ = std::fs::remove_file(&out);
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    Ok(format!("data:image/png;base64,{}", b64))
+    app.state::<IconCache>().insert(path, url.clone());
+    Ok(url)
 }
 
 #[tauri::command]
@@ -133,7 +132,6 @@ pub fn get_card_files(app: tauri::AppHandle, card_label: String) -> Result<Vec<F
         let card = cards.get(&card_label).ok_or("找不到该窗口")?;
         Ok(card.file_vec.clone())
     })
-    
 }
 
 #[tauri::command]
