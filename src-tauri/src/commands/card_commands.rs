@@ -29,6 +29,21 @@ pub async fn create_new_card(app: tauri::AppHandle, card_name: &str) -> Result<(
 }
 
 #[tauri::command]
+pub async fn open_card(app: tauri::AppHandle, card_label: &str) -> Result<(), String>{
+    if let Some(window) = app.get_webview_window(&card_label){
+        window.set_focus().map_err(|e|e.to_string())?;
+        return Ok(());
+    }
+
+    let card_name = app.state::<CardRegistry>().unmutate(|cards|{
+        cards.get(card_label).cloned().ok_or_else(||String::from("找不到对应卡片"))
+    })?.card_name.clone();
+
+    let _ = services::spawn_card_window::spawn_card_window(&app, card_label, &card_name)?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn close_card(app: tauri::AppHandle, card_label: String) -> Result<(), String> {
     if let Some(win) = app.get_webview_window(&card_label) {
         win.close().map_err(|e|e.to_string())?;
@@ -93,7 +108,7 @@ pub fn reorder_card_files(app: tauri::AppHandle, card_label: String, order: Vec<
 
 //Read feature
 #[tauri::command]
-pub fn get_file_icon(path: String) -> Result<String, String> {
+pub async fn get_file_icon(path: String) -> Result<String, String> {
     use base64::Engine;
     use std::hash::{Hash, Hasher};
 

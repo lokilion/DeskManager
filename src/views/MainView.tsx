@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createCard } from "../api/card";
+import { createCard, openCard } from "../api/card";
 
 import "./MainView.css";
 import { useMainCards } from "../hooks/useMainCards";
@@ -30,7 +30,14 @@ function MainView(){
 
         <ul>
             {cards.map((card) => (
-                <li key={card.cardLabel}>
+                <li
+                    onDoubleClick={()=>{
+                        openCard(card.cardLabel).catch((reson)=>{
+                            console.error("[main]打开窗口失败", reson);
+                        });
+                    }}
+                    key={card.cardLabel}
+                >
                     {card.cardName}({card.fileVec.length} 个文件）
                 </li>
                 ))

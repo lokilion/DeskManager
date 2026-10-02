@@ -42,6 +42,14 @@
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(50, 50, 90, 0.06);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.container li:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(120, 130, 255, 0.5);
+  transform: translateY(-1px);
 }
 
 @media (prefers-color-scheme: dark) {

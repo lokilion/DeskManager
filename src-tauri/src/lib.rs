@@ -36,6 +36,7 @@ pub fn run() {
         //.manage(CardRegistry::new(PathBuf::from("./cards_json/cards.json")))
         .invoke_handler(tauri::generate_handler![
             create_new_card,
+            open_card,
             close_card,
             add_file_to_card,
             rename_card,

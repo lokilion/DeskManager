@@ -5,6 +5,10 @@ import { CardData, FileItem } from "../type";
 /** 后端广播的事件名。写成一个常量，避免前端写 "card-update"、后端写别的字符串，拼错了谁都不报错 */
 export const CARD_UPDATED = "card-update";
 
+export function openCard(cardLabel: string):Promise<void>{
+  return invoke("open_card", { cardLabel });
+}
+
 export function listCards(): Promise<CardData[]> {
   return invoke("list_cards");
 }
