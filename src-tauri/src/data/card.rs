@@ -80,4 +80,13 @@ impl CardRegistry {
         })?;
         Ok(())
     }
+
+    pub fn remove_file_from_card(&self, card_label: &str, paths:Vec<PathBuf>) -> Result<(), String> {
+        self.mutate(|cards|{
+            let card = cards.get_mut(card_label).ok_or("找不到该窗口")?;
+            card.file_vec.retain(|file| !paths.contains(&file.path));
+            Ok(())
+        })?;
+        Ok(())
+    }
 }

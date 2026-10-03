@@ -77,15 +77,16 @@ pub fn close_card(app: tauri::AppHandle, card_label: String) -> Result<(), Strin
 
 #[tauri::command]
 pub async fn open_file(app: tauri::AppHandle, card_label: String, path: String) -> Result<(), String>{
-    app.state::<CardRegistry>().unmutate(|cards|{
+    let exist = app.state::<CardRegistry>().unmutate(|cards|{
         let card = cards.get(&card_label).ok_or("找不到该窗口")?;
-        if card.file_vec.iter().any(|f| f.path == path){
+        Ok(card.file_vec.iter().any(|f| f.path == path))
+    })?;
+    if exist {
             app.opener().open_path(&path, None::<&str>).map_err(|e|e.to_string())?;
-        }else{
-            eprintln!("找不到{card_label}中的{path}文件");
-        }
-        Ok(())
-    })
+    }else{
+        eprintln!("找不到{card_label}中的{path}文件");
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -94,7 +95,6 @@ pub fn add_file_to_card(
     card_label: String,
     paths: Vec<PathBuf>,
 ) -> Result<(), String> {
-    let registry = app.state::<CardRegistry>();
     let files: Vec<FileItem> = paths
         .into_iter()
         .filter_map(|path| {
@@ -103,12 +103,23 @@ pub fn add_file_to_card(
         })
         .collect();
 
-    registry.add_file_to_card(&card_label, files)?;
+    app.state::<CardRegistry>().add_file_to_card(&card_label, files)?;
 
     app.emit("card-update", ()).map_err(|e| e.to_string())?;
 
     Ok(())
 }
+#[tauri::command]
+pub fn remove_file_from_card(
+    app: tauri::AppHandle,
+    card_label: String,
+    paths: Vec<PathBuf>
+) -> Result<(),String> {
+    app.state::<CardRegistry>().remove_file_from_card(&card_label, paths)?;
+    app.emit("card-update", ()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn rename_card(
     app: tauri::AppHandle,

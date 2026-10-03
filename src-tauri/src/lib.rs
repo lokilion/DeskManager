@@ -47,6 +47,7 @@ pub fn run() {
             close_card,
             open_file,
             add_file_to_card,
+            remove_file_from_card,
             rename_card,
             reorder_card_files,
             get_file_icon,

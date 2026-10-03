@@ -10,7 +10,7 @@ function FileIcon({ path }: { path: string }) {
             .catch(() => setIcon(""));
     }, [path]);
 
-    return <img className="file-preview" src={icon} alt="" draggable={false} />;
+    return <img className="file-preview" src={icon || undefined} alt="" draggable={false} />;
 }
 
 export default FileIcon;

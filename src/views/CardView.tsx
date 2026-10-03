@@ -1,42 +1,108 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 
 import CardFileItem from "../component/CardFileItem";
 import { ViewSize } from "../type";
-import { addFileToCard, closeCard, renameCard } from "../api/card";
+import { addFileToCard, removeFileFromCard } from "../api/card";
 
 import "./CardView.css";
 import { useCard } from "../hooks/useCard";
+import CardHeader from "../component/CardHeader";
 
 function CardView({ cardLabel }: { cardLabel: string }) {
 
     const { card } = useCard(cardLabel);
     const cardName = card?.cardName ?? "";
     const files = card?.fileVec ?? [];
-
-    const [editing, setEditing] = useState(false);
-    const [draftName, setDraftName] = useState("");
-    // 新增：菜单与视图大小
-    const [menuOpen, setMenuOpen] = useState(false);
     const [viewSize, setViewSize] = useState<ViewSize>("medium");
+    function onViewSizeChange(size: ViewSize){ setViewSize(size); }
 
-    function startRename() {
-        setDraftName(cardName);
-        setEditing(true);
-    }
-    async function commitRename() {
-        setEditing(false);
-        const newName = draftName.trim();
-        if (newName && newName != cardName) {
-            await renameCard( cardLabel, newName );
+    //选中集
+    const [selectedSet, setSelectedSet] = useState<Set<string>>(() => new Set());
+    //用于定位上一次非Shift单击的项目位置，初始状态默认是第一项/空
+    const [anchor, setAnchor] = useState<string | null>(null);
+    useEffect(()=>{
+        setAnchor(files[0]?.path ?? null);
+    },[files])
+
+    //删除逻辑
+    const selectedSetRef = useRef(selectedSet);
+    useEffect(() => {
+        selectedSetRef.current = selectedSet;
+    }, [selectedSet]);
+    useEffect(() => {
+        function handleKeyDown(e: KeyboardEvent) {
+            if (e.key !== "Delete") return;
+
+            const paths = [...selectedSetRef.current];
+            if (paths.length === 0) return;
+
+            // 顺手清掉选择集：被移除的条目还留在选中集合里的话，
+            // 再按一次 Delete 会去移除一批已经不存在的东西
+            setSelectedSet(new Set());
+            setAnchor(null);
+
+            removeFileFromCard(cardLabel, paths).catch((reason) => {
+                console.error("[card] 移除文件失败:", reason);
+            });
         }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [cardLabel]);      // ← 只依赖 cardLabel，所以只订阅一次
+
+    function handleItemClick(
+        path: string,
+        //是否按住ctrl切换选中状态，是否按住shift范围选中
+        {additive, range} : {additive:boolean, range:boolean}
+    ){
+        setSelectedSet((prev)=>{
+            // Shift：从锚点到当前项，整段并入
+            if (range && anchor) {
+                const from = files.findIndex((f) => f.path === anchor);
+                const to = files.findIndex((f) => f.path === path);
+                if (from >= 0 && to >= 0) {
+                    const [lo, hi] = (from <= to) ? [from, to] : [to, from];
+                    const next = new Set<string>();
+                    files.slice(lo, hi + 1).forEach((f) => next.add(f.path));
+                    return next;
+                }
+            }
+            // Ctrl：切换这一项
+            if (additive) {
+                const next = new Set(prev);
+                if (next.has(path)) {
+                    next.delete(path);
+                } else {
+                    next.add(path);
+                }
+                return next;
+            }
+
+            // 普通单击清空集合并选中自己
+            return new Set([path]);
+        });
+        if (!range) setAnchor(path);
     }
 
-    async function handleClose() {
-        await closeCard( cardLabel );
+    //ctrl代表“加选”+”状态切换“，这里处理框选逻辑
+    function handleMarqueeSelect(hit: Set<string>, { additive }: { additive: boolean }) {
+        setSelectedSet((prev) => {
+            if(!additive) {return new Set(hit);}
+
+            const next = new Set(prev);
+            hit.forEach((p)=>{
+                if(next.has(p)){
+                    next.delete(p)
+                }else{
+                    next.add(p)
+                }
+            })
+            return next;
+        });
     }
 
-
+    //文件从外部拖入的逻辑
     useEffect(() => {
         let unlisten: (() => void) | undefined;
         let cancel = false;
@@ -61,63 +127,20 @@ function CardView({ cardLabel }: { cardLabel: string }) {
 
     return (
         <main className="card">
-            <header className="card-header">
-                {editing ? (
-                    <input
-                        className="card-name-input"
-                        autoFocus
-                        value={draftName}
-                        onChange={(e) => setDraftName(e.currentTarget.value)}
-                        onBlur={commitRename}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") commitRename();
-                            if (e.key === "Escape") setEditing(false);
-                        }}
-                    />
-                ) : (
-                    <div className="card-drag" data-tauri-drag-region onDoubleClick={startRename}>
-                        {cardName}
-                    </div>
-                )}
-
-                {/* 菜单按钮 */}
-                <button className="card-menu-btn" onClick={() => setMenuOpen(!menuOpen)}>⋯</button>
-                {/* 关闭按钮 */}
-                <button className="card-close" onClick={handleClose}>×</button>
-
-                {/* 下拉菜单 */}
-                {menuOpen && (
-                    <>
-                        <div className="card-menu-mask" onClick={() => setMenuOpen(false)} />
-                        <div className="card-menu">
-                            <div className="card-menu-title">视图大小</div>
-                            <button
-                                className={"card-menu-item" + (viewSize === "small" ? " active" : "")}
-                                onClick={() => { setViewSize("small"); setMenuOpen(false); }}
-                            >
-                                小
-                            </button>
-                            <button
-                                className={"card-menu-item" + (viewSize === "medium" ? " active" : "")}
-                                onClick={() => { setViewSize("medium"); setMenuOpen(false); }}
-                            >
-                                中
-                            </button>
-                            <button
-                                className={"card-menu-item" + (viewSize === "large" ? " active" : "")}
-                                onClick={() => { setViewSize("large"); setMenuOpen(false); }}
-                            >
-                                大
-                            </button>
-                            {/* <div className="card-menu-sep" />
-                            <button className="card-menu-item danger" onClick={handleClose}>
-                                关闭窗口
-                            </button> */}
-                        </div>
-                    </>
-                )}
-            </header>
-            <CardFileItem cardLabel={cardLabel} files={files} viewSize={viewSize}/>
+            <CardHeader
+                cardLabel={cardLabel} 
+                cardName={cardName}
+                viewSize={viewSize}
+                onViewSizeChange={onViewSizeChange}
+            />
+            <CardFileItem
+                cardLabel={cardLabel}
+                files={files}
+                viewSize={viewSize}
+                selectedSet={selectedSet}
+                onItemClick={handleItemClick}
+                onMarqueeSelect={handleMarqueeSelect}
+            />
         </main>
     );
 }
