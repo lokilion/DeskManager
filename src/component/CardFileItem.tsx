@@ -4,9 +4,8 @@ import FileIcon from "./FileIcon";
 import { openFile, reorderCardFiles } from "../api/card";
 import { useRef, useState } from "react";
 import { buildOrder, computeDropIndex } from "../utils/ReorderDrag";
-import { autoScroll } from "../utils/AutoScroll";
 
-const DRAG_THRESHOLD = 4;
+const DRAG_THRESHOLD = 32;
 
 // selected icon paths
 // [onItemClick] / [onMarqueeSelect]
@@ -35,8 +34,6 @@ function CardFileItem({
         >(null);
     // 拖动排序的指示线
     const [dropLine, setDropLine] = useState<DropLine|null>(null);
-    // 拖动排序的插入下标
-    const pendingDropIndex = useRef<number | null>(null)
 
     const dragRef = useRef<{
         pointerId: number;
@@ -103,13 +100,9 @@ function CardFileItem({
             };
             setDraggingPaths(drag.paths);
         }
-        //已经开始拖动
-        else{
-            const drop = computeDropIndex(listRef.current, e.clientX, e.clientY);
-            setDropLine(drop.line);
-            pendingDropIndex.current = drop.index;
-            autoScroll(listRef.current, e.clientY);
-        }
+        //已经开始拖动/开始拖动这一刻
+        const drop = computeDropIndex(listRef.current, e.clientX, e.clientY);
+        setDropLine(drop.line);
     }
 
     function handlePointerUp(e: React.PointerEvent<HTMLUListElement>) {
@@ -122,7 +115,7 @@ function CardFileItem({
                 //清空渲染用state
                 setDraggingPaths(new Set());
                 //上传拖动结果
-                commitOrder(drag);
+                commitOrder(drag, e.clientX, e.clientY);
                 //释放dropline
                 setDropLine(null);
             }
@@ -170,10 +163,22 @@ function CardFileItem({
         onMarqueeSelect(hit, { additive });
     }
 
-    function commitOrder(drag: NonNullable<typeof dragRef.current>) {
+    function handlePointerCancel() {
+        dragRef.current = null;
+        setDraggingPaths(new Set());
+        setDropLine(null);
+        setMarquee(null);
+    }
+
+    function commitOrder(
+        drag: NonNullable<typeof dragRef.current>,
+        x: number,
+        y: number
+    ){
         const list = listRef.current;
-        if(list && pendingDropIndex.current){
-            const order = buildOrder(innerFiles, drag.paths, pendingDropIndex.current);
+        if(list){
+            const drop = computeDropIndex(listRef.current, x, y);
+            const order = buildOrder(innerFiles, drag.paths, drop.index);
             if (order.every((f, i) => f.path === innerFiles[i].path
             && order.length === innerFiles.length)){ return; }
             reorderCardFiles(cardLabel, order);
@@ -187,6 +192,7 @@ function CardFileItem({
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
             >
                 {files.map((file) => (
                     <li
