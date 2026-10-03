@@ -247,7 +247,16 @@ body {
   position: fixed;          /* 和我们用的视口坐标同一套基准 */
   z-index: 20;
   pointer-events: none;     /* 关键：否则矩形会吃掉 pointerup，框选结束不了 */
-  border: 1px solid rgba(90, 120, 255, 0.8);
+  border: 1px solid rgba(100, 194, 223, 0.8);
   background: rgba(90, 120, 255, 0.18);
   border-radius: 4px;
+}
+.drop-line {
+  position: fixed;
+  z-index: 21;              /* 比 .marquee 的 20 高，拖动时它才该在最上面 */
+  width: 2px;
+  box-sizing: border-box;
+  pointer-events: none;
+  border-radius: 1px;
+  background: #6a6a6a;
 }

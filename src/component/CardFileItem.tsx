@@ -1,9 +1,10 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { FileItem, ViewSize } from "../type";
+import { DropLine, FileItem, ViewSize } from "../type";
 import FileIcon from "./FileIcon";
 import { openFile, reorderCardFiles } from "../api/card";
 import { useRef, useState } from "react";
 import { buildOrder, computeDropIndex } from "../utils/ReorderDrag";
+import { autoScroll } from "../utils/AutoScroll";
 
 const DRAG_THRESHOLD = 4;
 
@@ -28,9 +29,14 @@ function CardFileItem({
 }: Props ){
     const listRef = useRef<HTMLUListElement>(null);
     // 拖框的起止点，用「视口坐标」（clientX/clientY）
+    // 存储左上右下对角两点的坐标
     const [marquee, setMarquee] = useState<
             { x1: number; y1: number; x2: number; y2: number } | null
         >(null);
+    // 拖动排序的指示线
+    const [dropLine, setDropLine] = useState<DropLine|null>(null);
+    // 拖动排序的插入下标
+    const pendingDropIndex = useRef<number | null>(null)
 
     const dragRef = useRef<{
         pointerId: number;
@@ -89,12 +95,21 @@ function CardFileItem({
             //捕捉鼠标
             e.currentTarget.setPointerCapture(e.pointerId);
             //按在选择项目中则拖动所有项目
-            drag.paths = selectedSet.has(drag.path)
-                ? new Set(selectedSet)
-                : new Set([drag.path]);
+            if(selectedSet.has(drag.path)){
+                drag.paths = new Set(selectedSet);
+            }else{
+                onItemClick(drag.path, {additive: false, range:false});
+                drag.paths = new Set([drag.path])
+            };
             setDraggingPaths(drag.paths);
         }
-
+        //已经开始拖动
+        else{
+            const drop = computeDropIndex(listRef.current, e.clientX, e.clientY);
+            setDropLine(drop.line);
+            pendingDropIndex.current = drop.index;
+            autoScroll(listRef.current, e.clientY);
+        }
     }
 
     function handlePointerUp(e: React.PointerEvent<HTMLUListElement>) {
@@ -107,7 +122,9 @@ function CardFileItem({
                 //清空渲染用state
                 setDraggingPaths(new Set());
                 //上传拖动结果
-                commitOrder(drag, e.clientX, e.clientY);
+                commitOrder(drag);
+                //释放dropline
+                setDropLine(null);
             }
             return;
         }
@@ -153,15 +170,10 @@ function CardFileItem({
         onMarqueeSelect(hit, { additive });
     }
 
-    function commitOrder(
-        drag: NonNullable<typeof dragRef.current>,
-        x: number,
-        y: number,
-    ) {
+    function commitOrder(drag: NonNullable<typeof dragRef.current>) {
         const list = listRef.current;
-        if(list){
-            const dropIndex = computeDropIndex(list, x, y);
-            const order = buildOrder(innerFiles, drag.paths, dropIndex);
+        if(list && pendingDropIndex.current){
+            const order = buildOrder(innerFiles, drag.paths, pendingDropIndex.current);
             if (order.every((f, i) => f.path === innerFiles[i].path
             && order.length === innerFiles.length)){ return; }
             reorderCardFiles(cardLabel, order);
@@ -180,7 +192,10 @@ function CardFileItem({
                     <li
                         data-file-path={file.path}
                         key={file.path}
-                        className={"file-item"+ (selectedSet.has(file.path) ? " selected" : "")}
+                        className={"file-item"
+                            + (selectedSet.has(file.path) ? " selected" : "")
+                            + (draggingPaths.has(file.path) ? " dragging" : "")
+                        }
                         onClick={(e)=>onItemClick(file.path, {
                             additive: e.ctrlKey || e.metaKey,
                             range: e.shiftKey,
@@ -214,8 +229,18 @@ function CardFileItem({
                     }}
                 />
             )}
+            {dropLine && (
+                <div
+                    className="drop-line"
+                    style={{
+                        left: dropLine.line_x, 
+                        top: dropLine.line_y, 
+                        height: dropLine.height
+                    }}
+                />
+            )}
         </>
-    )
+    );
 }
 
 export default CardFileItem;

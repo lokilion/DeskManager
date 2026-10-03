@@ -9,3 +9,5 @@ export interface CardData{
 }
 
 export type ViewSize = "small" | "medium" | "large";
+
+export type DropLine = {line_x: number, line_y: number, height: number};
