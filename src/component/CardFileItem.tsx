@@ -1,8 +1,9 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FileItem, ViewSize } from "../type";
 import FileIcon from "./FileIcon";
-import { openFile } from "../api/card";
+import { openFile, reorderCardFiles } from "../api/card";
 import { useRef, useState } from "react";
+import { buildOrder, computeDropIndex } from "../utils/ReorderDrag";
 
 const DRAG_THRESHOLD = 4;
 
@@ -31,15 +32,39 @@ function CardFileItem({
             { x1: number; y1: number; x2: number; y2: number } | null
         >(null);
 
+    const dragRef = useRef<{
+        pointerId: number;
+        startX: number;
+        startY: number;
+        path: string;
+        active: boolean;
+        paths: Set<string>;
+    } | null>(null);
+    //use this to render
+    const [draggingPaths, setDraggingPaths] = useState<Set<string>>(() => new Set());
+    
     if(files === undefined){ return; }
-
+    const innerFiles = files;
+    
     function isImage(name: string) {
         return /\.(png|jpe?g|gif|webp|bmp|svg|ico)$/i.test(name);
     }
 
     function handlePointerDown(e: React.PointerEvent<HTMLUListElement>) {
         if (e.button !== 0) return; // 只响应左键
-        if ((e.target as HTMLElement).closest(".file-item")) return;    // 点在条目上 → 交给条目自己
+        // 点在条目上 → 记录当前item和鼠标状态
+        const itemEl = (e.target as HTMLElement).closest<HTMLElement>(".file-item");
+        if (itemEl?.dataset.filePath) {
+            dragRef.current = {
+                pointerId: e.pointerId,
+                startX: e.clientX,
+                startY: e.clientY,
+                path: itemEl.dataset.filePath,
+                active: false,
+                paths: new Set(),
+            }
+            return;
+        }
 
         // 指针捕获：把后续的 move/up 都锁定到这个元素上。
         // 不捕获的话，鼠标一旦移出列表（比如拖到卡片标题栏上），
@@ -49,11 +74,44 @@ function CardFileItem({
     }
 
     function handlePointerMove(e: React.PointerEvent<HTMLUListElement>) {
-        if (!marquee) return;
-        setMarquee((prev) => (prev ? { ...prev, x2: e.clientX, y2: e.clientY } : null));
+        if (marquee){ 
+            setMarquee((prev) => (prev ? { ...prev, x2: e.clientX, y2: e.clientY } : null));
+            return;
+        }
+        //图标拖动排序
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== e.pointerId) return;
+        if(!drag.active){
+            const moved = Math.hypot(e.clientX-drag.startX, e.clientY-drag.startY);
+            if(moved<=DRAG_THRESHOLD*1.2) return;
+            //确定是拖动
+            drag.active = true;
+            //捕捉鼠标
+            e.currentTarget.setPointerCapture(e.pointerId);
+            //按在选择项目中则拖动所有项目
+            drag.paths = selectedSet.has(drag.path)
+                ? new Set(selectedSet)
+                : new Set([drag.path]);
+            setDraggingPaths(drag.paths);
+        }
+
     }
 
     function handlePointerUp(e: React.PointerEvent<HTMLUListElement>) {
+        const drag = dragRef.current;
+        if(drag && drag.pointerId == e.pointerId){
+            dragRef.current = null;
+            if(drag.active){
+                //释放鼠标
+                if(e.currentTarget.hasPointerCapture(e.pointerId)){e.currentTarget.releasePointerCapture(e.pointerId);}
+                //清空渲染用state
+                setDraggingPaths(new Set());
+                //上传拖动结果
+                commitOrder(drag, e.clientX, e.clientY);
+            }
+            return;
+        }
+
         if (!marquee) return;
         listRef.current?.releasePointerCapture(e.pointerId);
 
@@ -86,7 +144,6 @@ function CardFileItem({
                 rect.right > item.left &&
                 rect.top < item.bottom &&
                 rect.bottom > item.top;
-            console.log("{}",intersects);
             if (intersects) {
                 //获取该元素上自定义的“data-file-path”
                 const path = el.dataset.filePath;
@@ -96,6 +153,20 @@ function CardFileItem({
         onMarqueeSelect(hit, { additive });
     }
 
+    function commitOrder(
+        drag: NonNullable<typeof dragRef.current>,
+        x: number,
+        y: number,
+    ) {
+        const list = listRef.current;
+        if(list){
+            const dropIndex = computeDropIndex(list, x, y);
+            const order = buildOrder(innerFiles, drag.paths, dropIndex);
+            if (order.every((f, i) => f.path === innerFiles[i].path
+            && order.length === innerFiles.length)){ return; }
+            reorderCardFiles(cardLabel, order);
+        }
+    }
     return(
         <>
             <ul

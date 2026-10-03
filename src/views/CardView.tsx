@@ -37,8 +37,7 @@ function CardView({ cardLabel }: { cardLabel: string }) {
             const paths = [...selectedSetRef.current];
             if (paths.length === 0) return;
 
-            // 顺手清掉选择集：被移除的条目还留在选中集合里的话，
-            // 再按一次 Delete 会去移除一批已经不存在的东西
+            // 清掉选择集
             setSelectedSet(new Set());
             setAnchor(null);
 

@@ -143,17 +143,16 @@ pub fn rename_card(
 pub fn reorder_card_files(
     app: tauri::AppHandle,
     card_label: String,
-    order: Vec<PathBuf>,
+    order: Vec<FileItem>,
 ) -> Result<(), String> {
     app.state::<CardRegistry>().mutate(|cards| {
         let card = cards.get_mut(&card_label).ok_or("找不到该窗口")?;
-        card.file_vec.sort_by_key(|f| {
-            order
-                .iter()
-                .position(|p| p == &f.path)
-                .unwrap_or(usize::MAX)
-        });
-        Ok(())
+        if order.iter().any(|f|!card.file_vec.contains(f)){
+            return Err("排序后多出额外文件".to_string());
+        }else{
+            card.file_vec = order;
+            Ok(())
+        }
     })?;
 
     app.emit("card-update", ()).map_err(|e| e.to_string())?;

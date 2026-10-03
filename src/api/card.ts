@@ -45,7 +45,7 @@ export function removeFileFromCard(cardLabel: string, paths: string[]): Promise<
   return invoke("remove_file_from_card", { cardLabel, paths });
 }
 
-export function reorderCardFiles(cardLabel: string, order: string[]): Promise<void> {
+export function reorderCardFiles(cardLabel: string, order: FileItem[]): Promise<void> {
   return invoke("reorder_card_files", { cardLabel, order });
 }
 

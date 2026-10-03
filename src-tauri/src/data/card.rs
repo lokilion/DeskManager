@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Mutex};
 
 use crate::services::store_data::CardStore;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct FileItem {
     pub name: String,
@@ -59,8 +59,8 @@ impl CardRegistry {
         change_fn: impl FnOnce(&HashMap<String, CardData>) -> Result<T, String>,
     ) -> Result<T, String> {
         let result = {
-            let mut cards = self.cards.lock().map_err(|e| e.to_string())?;
-            let result = change_fn(&mut cards)?;
+            let cards = self.cards.lock().map_err(|e| e.to_string())?;
+            let result = change_fn(&cards)?;
             result
         };
         Ok(result)
